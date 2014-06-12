@@ -1,5 +1,29 @@
-#
-# Netbeans project files
-#
-/nbproject
-/xhprof_lib/config.php
+# just sane ignores
+Thumbs.db
+.svn/*
+
+# eclipse
+.project
+.settings
+
+# netbeans
+nbproject
+
+# phpStorm
+.idea
+
+# geany
+*.geany
+
+# vim ex mode
+.vimrc
+
+# Mac OS
+.DS_Store
+
+# don't forget this one
+!.gitkeep
+!.gitignore
+
+# Project
+xhprof_lib/config.php
