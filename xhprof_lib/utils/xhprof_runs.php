@@ -242,10 +242,10 @@ class XHProfRuns_Model extends XHProfRuns_Default
     }
 
 
-
     public static function getNextAssoc($resultSet)
     {
         $class = self::getDbClass();
+
         return $class::getNextAssoc($resultSet);
     }
 
