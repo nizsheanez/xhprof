@@ -10,7 +10,7 @@
  * url nvarchar(255) NULL DEFAULT NULL,
  * c_url nvarchar(255) NULL DEFAULT NULL,
  * timestamp datetime NOT NULL DEFAULT getdate(),
- * [server name] nvarchar(64) NULL DEFAULT NULL,
+ * [server_name] nvarchar(64) NULL DEFAULT NULL,
  * perfdata nvarchar(max) NULL,
  * type smallint NULL DEFAULT NULL,
  * cookie nvarchar(max) NULL,

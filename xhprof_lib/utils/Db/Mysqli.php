@@ -9,7 +9,7 @@
  * `url` varchar(255) default NULL,
  * `c_url` varchar(255) default NULL,
  * `timestamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
- * `server name` varchar(64) default NULL,
+ * `server_name` varchar(64) default NULL,
  * `perfdata` MEDIUMBLOB,
  * `type` tinyint(4) default NULL,
  * `cookie` BLOB,
