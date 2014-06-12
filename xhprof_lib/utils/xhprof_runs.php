@@ -662,18 +662,6 @@ class XHProf_Profiler
         if (!static::$xhprofModel) {
             global $_xhprof;
             $_xhprof = $config;
-            [
-                'savepost'   => false,
-                'serializer' => 'JSON',
-                'display'    => false,
-                'doprofile'  => false
-            ];
-
-            $bootstrap = Zend_Controller_Front::getInstance()->getParam('bootstrap');
-            if ($bootstrap) {
-                $dbConfig = $bootstrap->getOption('xhprof');
-                $_xhprof  = array_merge($_xhprof, $dbConfig);
-            }
             static::$xhprofModel = new XHProfRuns_Model();
         }
 
