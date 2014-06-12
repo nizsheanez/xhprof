@@ -75,7 +75,8 @@ class XHProfRuns_Default implements iXHProfRuns
     public $prefix = 't11_';
 
 
-    public function __construct($dir = null) {
+    public function __construct($dir = null)
+    {
 
         // if user hasn't passed a directory location,
         // we use the xhprof.output_dir ini setting
@@ -89,11 +90,13 @@ class XHProfRuns_Default implements iXHProfRuns
                 // some default that at least works on unix...
                 $dir = "/tmp";
 
-                xhprof_error("Warning: Must specify directory location for XHProf runs. ".
+                xhprof_error(
+                    "Warning: Must specify directory location for XHProf runs. " .
                     "Trying {$dir} as default. You can either pass the " .
-                    "directory location as an argument to the constructor ".
-                    "for XHProfRuns_Default() or set xhprof.output_dir ".
-                    "ini param.");
+                    "directory location as an argument to the constructor " .
+                    "for XHProfRuns_Default() or set xhprof.output_dir " .
+                    "ini param."
+                );
             }
         }
         $this->dir = $dir;
@@ -191,10 +194,11 @@ class XHProfRuns_Default implements iXHProfRuns
 
 }
 
-class XHProfRuns_Db extends XHProfRuns_Default
+class XHProfRuns_Model extends XHProfRuns_Default
 {
-    protected $runtimeUri;
     public $run_details = null;
+    protected $uri;
+    protected $simpleUri;
 
     /**
      *
@@ -217,9 +221,38 @@ class XHProfRuns_Db extends XHProfRuns_Default
         $this->db->connect();
     }
 
+    public function setUri($uri)
+    {
+        $this->uri = $uri;
+    }
+
+    public function setSimpleUri($simpleUri)
+    {
+        $this->simpleUri = $simpleUri;
+    }
+
+    public function getSimpleUri()
+    {
+        return $this->simpleUri;
+    }
+
+    public function getUri()
+    {
+        return $this->uri;
+    }
+
+
+
+    public static function getNextAssoc($resultSet)
+    {
+        $class = self::getDbClass();
+        return $class::getNextAssoc($resultSet);
+    }
+
     public static function getDbClass()
     {
         global $_xhprof;
+
         return 'Db_' . $_xhprof['dbadapter'];
     }
 
@@ -253,37 +286,6 @@ class XHProfRuns_Db extends XHProfRuns_Default
      * ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
      */
-
-    public function beginProfile($url = null)
-    {
-        global $_xhprof;
-        if ($url) {
-            $this->runtimeUri = $url;
-        }
-
-        //Display warning if extension not available
-        if (extension_loaded('xhprof')) {
-            include_once XHPROF_LIB_ROOT . '/utils/xhprof_lib.php';
-            include_once XHPROF_LIB_ROOT . '/utils/xhprof_runs.php';
-            if (isset($ignoredFunctions) && is_array($ignoredFunctions) && !empty($ignoredFunctions)) {
-                xhprof_enable(XHPROF_FLAGS_CPU + XHPROF_FLAGS_MEMORY, array('ignored_functions' => $ignoredFunctions));
-            } else {
-                xhprof_enable(XHPROF_FLAGS_CPU + XHPROF_FLAGS_MEMORY);
-            }
-        } elseif (!extension_loaded('xhprof') && $_xhprof['display'] === true) {
-            //$message = 'Warning! Unable to profile run, xhprof extension not loaded';
-            //trigger_error($message, E_USER_WARNING);
-        }
-    }
-
-    public function endProfile($url)
-    {
-        if (extension_loaded('xhprof')) {
-            return xhprof_disable();
-        } else {
-            return false;
-        }
-    }
 
     public function save($xhprof_data)
     {
@@ -324,7 +326,7 @@ class XHProfRuns_Db extends XHProfRuns_Default
 
         */
 
-        if (!isset($GLOBALS['_xhprof']['serializer']) || strtolower($GLOBALS['_xhprof']['serializer'] == 'php')) {
+        if (!isset($_xhprof['serializer']) || strtolower($_xhprof['serializer'] == 'php')) {
             $sql['get']    = serialize($_GET);
             $sql['cookie'] = serialize($_COOKIE);
 
@@ -352,16 +354,16 @@ class XHProfRuns_Db extends XHProfRuns_Default
 
         // The value of 2 seems to be light enugh that we're not killing the server, but still gives us lots of breathing room on
         // full production code.
-        if (!isset($GLOBALS['_xhprof']['serializer']) || strtolower($GLOBALS['_xhprof']['serializer'] == 'php')) {
+        if (!isset($_xhprof['serializer']) || strtolower($_xhprof['serializer'] == 'php')) {
             $sql['data'] = gzcompress(serialize($xhprof_data), 2);
         } else {
-            $sql['data'] = gzcompress(json_encode($xhprof_data), 2);
+            $sql['data'] = json_encode($xhprof_data);
         }
 
         $sname = isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : '';
 
         $sql['url']                    = $this->getUri();
-        $sql['c_url']                  = $this->urlSimilartor($this->getUri());
+        $sql['c_url']                  = $this->getSimpleUri();
         $sql['servername']             = $sname;
         $sql['type']                   = (int)(isset($xhprof_details['type']) ? $xhprof_details['type'] : 0);
         $sql['timestamp']              = $_SERVER['REQUEST_TIME'];
@@ -468,10 +470,10 @@ class XHProfRuns_Db extends XHProfRuns_Default
         $data      = $this->db->getNextAssoc($resultSet);
 
         //The Performance data is compressed lightly to avoid max row length
-        if (!isset($GLOBALS['_xhprof']['serializer']) || strtolower($GLOBALS['_xhprof']['serializer'] == 'php')) {
+        if (!isset($_xhprof['serializer']) || strtolower($_xhprof['serializer'] == 'php')) {
             $contents = unserialize(gzuncompress($data['perfdata']));
         } else {
-            $contents = json_decode(gzuncompress($data['perfdata']), true);
+            $contents = json_decode($data['perfdata'], true);
         }
 
         //This data isnt' needed for display purposes, there's no point in keeping it in this array
@@ -597,13 +599,6 @@ class XHProfRuns_Db extends XHProfRuns_Default
         return $rs;
     }
 
-    public static function getNextAssoc($resultSet)
-    {
-        $class = self::getDbClass();
-
-        return $class::getNextAssoc($resultSet);
-    }
-
     /**
      * Get stats (pmu, ct, wt) on a url or c_url
      *
@@ -618,17 +613,6 @@ class XHProfRuns_Db extends XHProfRuns_Default
 
         return $rs;
     }
-
-    public function getUri()
-    {
-        return isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : $_SERVER['PHP_SELF'];
-    }
-
-    public function setRuntimeUri($uri)
-    {
-        $this->runtimeUri = $uri;
-    }
-
 
     protected function saveInternal($sql, $type, $run_id = null)
     {
@@ -658,12 +642,92 @@ class XHProfRuns_Db extends XHProfRuns_Default
         }
     }
 
-    protected function urlSimilartor($url)
+}
+
+class XHProf_Profiler
+{
+    protected $simpleUri;
+    /**
+     * @var XHProfRuns_Model
+     */
+    protected static $xhprofModel;
+
+    /**
+     * @param $config
+     *
+     * @return XHProfRuns_Model
+     */
+    public function getXhprofModel($config)
     {
-        if ($this->runtimeUri) {
-            return $this->runtimeUri;
+        if (!static::$xhprofModel) {
+            global $_xhprof;
+            $_xhprof = $config;
+            [
+                'savepost'   => false,
+                'serializer' => 'JSON',
+                'display'    => false,
+                'doprofile'  => false
+            ];
+
+            $bootstrap = Zend_Controller_Front::getInstance()->getParam('bootstrap');
+            if ($bootstrap) {
+                $dbConfig = $bootstrap->getOption('xhprof');
+                $_xhprof  = array_merge($_xhprof, $dbConfig);
+            }
+            static::$xhprofModel = new XHProfRuns_Model();
+        }
+
+        return static::$xhprofModel;
+    }
+
+    public function getSimpleUri($url)
+    {
+        if ($this->simpleUri) {
+            return $this->simpleUri;
         }
 
         return $url;
     }
+
+    public function getUri()
+    {
+        return isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : $_SERVER['PHP_SELF'];
+    }
+
+    public function setSimpleUri($uri)
+    {
+        $this->simpleUri = $uri;
+    }
+
+    public function beginProfile($url = null)
+    {
+        global $_xhprof;
+        if ($url) {
+            $this->simpleUri = $url;
+        }
+
+        //Display warning if extension not available
+        if (extension_loaded('xhprof')) {
+            include_once XHPROF_LIB_ROOT . '/utils/xhprof_lib.php';
+            include_once XHPROF_LIB_ROOT . '/utils/xhprof_runs.php';
+            if (isset($ignoredFunctions) && is_array($ignoredFunctions) && !empty($ignoredFunctions)) {
+                xhprof_enable(XHPROF_FLAGS_CPU + XHPROF_FLAGS_MEMORY, array('ignored_functions' => $ignoredFunctions));
+            } else {
+                xhprof_enable(XHPROF_FLAGS_CPU + XHPROF_FLAGS_MEMORY);
+            }
+        } elseif (!extension_loaded('xhprof') && $_xhprof['display'] === true) {
+            //$message = 'Warning! Unable to profile run, xhprof extension not loaded';
+            //trigger_error($message, E_USER_WARNING);
+        }
+    }
+
+    public function endProfile($url)
+    {
+        if (extension_loaded('xhprof')) {
+            return xhprof_disable();
+        } else {
+            return false;
+        }
+    }
+
 }

@@ -36,6 +36,8 @@ class Db_Pdo extends Db_Abstract
 {
     protected $curStmt;
 
+    public $db;
+
     public function connect()
     {
         $connectionString =
